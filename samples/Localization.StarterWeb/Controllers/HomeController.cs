@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,13 @@ namespace Localization.StarterWeb.Controllers
             ViewData["Message"] = _localizer["Your contact page."];
 
             return View();
+        }
+
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public IActionResult Antiforgery()
+        {
+            return Content("success!");
         }
 
         [HttpPost]

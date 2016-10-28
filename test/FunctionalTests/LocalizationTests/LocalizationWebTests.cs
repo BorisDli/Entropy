@@ -1,3 +1,4 @@
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Server.IntegrationTesting;
 using Microsoft.AspNetCore.Testing.xunit;
@@ -35,6 +36,37 @@ namespace EntropyTests.LocalizationTests
         public async Task RunSite_NonWindowsOnly(ServerType server, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
             await RunSite(server, runtimeFlavor, architecture, applicationBaseUrl);
+        }
+
+        [Theory]
+        [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:6208")]
+        public async Task RunAntiforgery_AllPlatforms(ServerType server, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        {
+            await RunAntiforgerySite(server, runtimeFlavor, architecture, applicationBaseUrl);
+        }
+
+        private async Task RunAntiforgerySite(
+            ServerType server,
+            RuntimeFlavor runtimeFlavor,
+            RuntimeArchitecture architecture,
+            string applicationBaseUrl)
+        {
+            await TestServices.RunSiteTest(
+                SiteName,
+                server,
+                runtimeFlavor,
+                architecture,
+                applicationBaseUrl,
+                async (httpClient, logger, token) =>
+                {
+                    var response = await RetryHelper.RetryRequest(async () =>
+                    {
+                        return await httpClient.GetAsync("/Home/Antiforgery");
+                    }, logger, token, retryCount: 30);
+
+                    // Authentication should run before Antiforgery
+                    Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+                });
         }
 
         private async Task RunSite(ServerType server, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
